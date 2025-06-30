@@ -1,0 +1,60 @@
+stages:
+  - pre-check
+  - test
+  - plan
+  - apply
+
+variables:
+  ENV_FOLDER: $CI_ENVIRONMENT_NAME  # Should be 'dev', 'stage', or 'prod'
+
+before_script:
+  - apk add --no-cache curl jq
+  - curl -LO https://releases.hashicorp.com/terraform/1.0.0/terraform_1.0.0_linux_amd64.zip
+  - unzip terraform_1.0.0_linux_amd64.zip
+  - mv terraform /usr/local/bin/
+  - terraform --version
+
+pre-check:
+  stage: pre-check
+  script:
+    - echo "Running pre-checks for environment: $ENV_FOLDER"
+    - cd terraform/Webapplication/$ENV_FOLDER
+    - terraform init
+  rules:
+    - if: '$ENV_FOLDER == "dev"'
+    - if: '$ENV_FOLDER == "stage"'
+    - if: '$ENV_FOLDER == "prod"'
+
+test:
+  stage: test
+  script:
+    - echo "Running tests for environment: $ENV_FOLDER"
+    - cd terraform/Webapplication/$ENV_FOLDER
+    - terraform validate
+  rules:
+    - if: '$ENV_FOLDER == "dev"'
+    - if: '$ENV_FOLDER == "stage"'
+    - if: '$ENV_FOLDER == "prod"'
+
+plan:
+  stage: plan
+  script:
+    - echo "Planning Terraform for environment: $ENV_FOLDER"
+    - cd terraform/Webapplication/$ENV_FOLDER
+    - terraform plan -out=tfplan
+  rules:
+    - if: '$ENV_FOLDER == "dev"'
+    - if: '$ENV_FOLDER == "stage"'
+    - if: '$ENV_FOLDER == "prod"'
+
+apply:
+  stage: apply
+  script:
+    - echo "Applying Terraform for environment: $ENV_FOLDER"
+    - cd terraform/Webapplication/$ENV_FOLDER
+    - terraform apply -auto-approve tfplan
+  when: manual
+  rules:
+    - if: '$ENV_FOLDER == "dev"'
+    - if: '$ENV_FOLDER == "stage"'
+    - if: '$ENV_FOLDER == "prod"'
